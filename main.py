@@ -9,6 +9,9 @@ import sys
 import os
 from PIL import Image, ImageTk
 
+from ctypes import windll
+windll.shcore.SetProcessDpiAwareness(1)
+
 # Add current directory to path if needed
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
