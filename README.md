@@ -19,9 +19,12 @@
 SPLATsim is a simulation application developed for analysing rocket parachute recovery systems. This tool provides modeling of parachute deployment scenarios with particular emphasis on dual-event recovery systems employing reefing techniques.
 
 
-### **Simulation Types**
+## **Simulation Types**
 - **Single Event**: Traditional single parachute deployment
 - **Dual Event**: Advanced two-stage deployment with reefing
+
+### Reefing Simulation
+The reefed drag coefficient is found empirically. Due to limited data, this is an approximation of the true reefed $C_d$ and it may vary quite a bit
 
 ## Installation
 
