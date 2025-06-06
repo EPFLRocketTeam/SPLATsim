@@ -17,8 +17,12 @@ class PlotPanel(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         
+        self.plot_altitude = tk.BooleanVar(value=True)
+        self.plot_acceleration = tk.BooleanVar(value=True) 
+        self.plot_velocity = tk.BooleanVar(value=True)
         self.last_results = None
         self.setup_ui()
+        
     
     def setup_ui(self):
         """Setup the user interface"""
@@ -28,6 +32,7 @@ class PlotPanel(ttk.Frame):
         # Results display
         self.setup_results_display()
         
+        self.setup_plot_controls()
         # Plot area (initially empty)
         self.setup_plot_area()
     
@@ -47,6 +52,16 @@ class PlotPanel(ttk.Frame):
             text="Clear Plot", 
             command=self.clear_plot
         ).pack(side=tk.LEFT, padx=5)
+        
+    def setup_plot_controls(self):
+        """Setup plot control buttons"""
+        plot_control_frame = ttk.Frame(self)
+        plot_control_frame.pack(fill=tk.X, pady=5)
+        # Add checkboxes for plot visibility
+        ttk.Checkbutton(plot_control_frame, text="Altitude", variable=self.plot_altitude, command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(plot_control_frame, text="Acceleration", variable=self.plot_acceleration, command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(plot_control_frame, text="Velocity", variable=self.plot_velocity, command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
+
     
     def setup_results_display(self):
         """Setup results text display"""
@@ -159,8 +174,18 @@ class PlotPanel(ttk.Frame):
     
     def _create_embedded_plot(self):
         """Create embedded plot in the GUI"""
-        # Clear any existing plot
-        self.clear_plot()
+        # Clear any existing plot completely
+        if self.canvas:
+            self.canvas.get_tk_widget().destroy()
+        if self.toolbar:
+            self.toolbar.destroy()
+        if self.figure:
+            plt.close(self.figure)
+            
+        # Reset references
+        self.canvas = None
+        self.toolbar = None
+        self.figure = None
         
         if hasattr(self, 'placeholder_frame'):
             self.placeholder_frame.destroy()
@@ -183,43 +208,61 @@ class PlotPanel(ttk.Frame):
         # Create toolbar
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_frame)
         self.toolbar.update()
+
+        
+    def refresh_plot(self):
+        """Refresh the embedded plot with current visibility settings"""
+        if self.last_results:
+            # Force a complete recreation of the embedded plot
+            self._create_embedded_plot()
     
     def _plot_data(self, fig, ax1):
         """Plot the simulation data on given axes"""
         results = self.last_results
         
-        # Plot altitude
-        color = 'tab:red'
-        ax1.plot(results['time'], results['altitude'], color=color, linewidth=2, label='Altitude')
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Altitude (m)', color=color)
-        ax1.tick_params(axis='y', labelcolor=color)
+        lines_all = []
+        labels_all = []
+        
         ax1.grid(True, alpha=0.3)
+        if self.plot_altitude.get():
+            # Plot altitude
+            color = 'tab:red'
+            line = ax1.plot(results['time'], results['altitude'], color=color, linewidth=2, label='Altitude')
+            ax1.set_xlabel('Time (s)')
+            ax1.set_ylabel('Altitude (m)', color=color)
+            ax1.tick_params(axis='y', labelcolor=color)
+            lines_all.extend(line)
+            labels_all.append('Altitude')
+
+        ax2, ax3 = None, None
         
-        # Plot acceleration on second y-axis
-        ax2 = ax1.twinx()
-        color = 'tab:blue'
-        acceleration_g = [acc/9.81 for acc in results['acceleration']]
-        ax2.plot(results['time'], acceleration_g, color=color, linewidth=2, label='Acceleration')
-        ax2.set_ylabel('Acceleration (g)', color=color)
-        ax2.tick_params(axis='y', labelcolor=color)
+        if self.plot_acceleration.get():
+            # Plot acceleration on second y-axis
+            ax2 = ax1.twinx()
+            color = 'tab:blue'
+            acceleration_g = [acc/9.81 for acc in results['acceleration']]
+            line = ax2.plot(results['time'], acceleration_g, color=color, linewidth=2, label='Acceleration')
+            ax2.set_ylabel('Acceleration (g)', color=color)
+            ax2.tick_params(axis='y', labelcolor=color)
+            lines_all.extend(line)
+            labels_all.append('Acceleration')
         
-        # Plot velocity on third y-axis
-        ax3 = ax1.twinx()
-        color = 'tab:green'
-        ax3.spines['right'].set_position(('outward', 60))
-        ax3.plot(results['time'], results['velocity'], color=color, linewidth=2, label='Velocity')
-        ax3.set_ylabel('Velocity (m/s)', color=color)
-        ax3.tick_params(axis='y', labelcolor=color)
+        if self.plot_velocity.get():
+            # Plot velocity on third y-axis
+            ax3 = ax1.twinx()
+            color = 'tab:green'
+            if ax2:  # If acceleration axis exists, offset velocity axis further
+                ax3.spines['right'].set_position(('outward', 60))
+            line = ax3.plot(results['time'], results['velocity'], color=color, linewidth=2, label='Velocity')
+            ax3.set_ylabel('Velocity (m/s)', color=color)
+            ax3.tick_params(axis='y', labelcolor=color)
+            lines_all.extend(line)
+            labels_all.append('Velocity')
         
-        # Add legend
-        lines1, labels1 = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        lines3, labels3 = ax3.get_legend_handles_labels()
+        # Add legend only if there are plots
+        if lines_all:
+            ax1.legend(lines_all, labels_all, loc='upper right', bbox_to_anchor=(0.98, 0.98))
         
-        ax1.legend(lines1 + lines2 + lines3, labels1 + labels2 + labels3, 
-                  loc='upper right', bbox_to_anchor=(0.98, 0.98))
-    
     # FIXME: Not Used!
     def export_plot(self, filename, dpi=300):
         """Export current plot to file"""
