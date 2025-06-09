@@ -21,11 +21,20 @@ class SimulationEngine(ABC):
         self.altitudes = []
         self.velocities = []
         self.accelerations = []
+        self.max_drift_velocity = 20 # m/s, maximum drift velocity for parachute descent
+        self.drift_velocity_step = 2 # m/s, step size for drift velocity simulation
+        self.drift = self.generate_drift_dict()
 
+    def generate_drift_dict(self):
+        """Generate a dictionary with drift velocities as keys and [0] as values."""
+        drift_dict = {}
+        for velocity in range(0, self.max_drift_velocity + 1, self.drift_velocity_step):
+            drift_dict[velocity] = [0]
+        return drift_dict
+    
     def calculate_recovery_forces(self, Cd, area):
         drag_force = 0.5 * self.AIR_DENSITY * self.velocity**2 * Cd * area
         weight = self.rocket.mass * self.GRAVITY
-
         net_force = drag_force - weight  
         return net_force
     
@@ -35,6 +44,16 @@ class SimulationEngine(ABC):
         self.altitudes.append(self.altitude)
         self.velocities.append(self.velocity)
         self.accelerations.append(self.acceleration)
+    
+    def simulate_drift(self):
+        """Simulate drift based on wind velocities"""
+        drift_time_step = 1.0
+        if self.time % drift_time_step < 1e-6:  # Update drift every second
+            for wind_velocity in self.drift.keys():
+                old_position = self.drift[wind_velocity][-1]
+                new_position = old_position + wind_velocity * drift_time_step
+                self.drift[wind_velocity].append(new_position)
+
 
     def update_state(self):
         """Update the state of the simulation"""
@@ -46,6 +65,7 @@ class SimulationEngine(ABC):
     def simulate_freefall_phase(self):
         """Simulate free fall until parachute deployment"""
         while self.altitude > 0 and self.time < self.parachute.opening_time and self.time < self.max_time:
+            self.simulate_drift()
             area = math.pi * (self.rocket.diameter / 2) ** 2
             Cd = self.rocket.drag_coefficient
             self.acceleration = self.calculate_recovery_forces(Cd, area) / self.rocket.mass
@@ -57,6 +77,7 @@ class SimulationEngine(ABC):
     def simulate_parachute_phase(self, end_altitude=0):
         """Simulate parachute descent until landing"""
         while self.altitude > end_altitude and self.time < self.max_time:
+            self.simulate_drift()
             if self.reefed:
                 if self.parachute.reefed_projected_area is None:
                     raise ValueError("Reefed parachute does not have a projected area defined. Check reefing ratio")
@@ -89,7 +110,6 @@ class SingleEventSimulation(SimulationEngine):
         
         # Phase 2: Parachute descent until landing
         self.simulate_parachute_phase()
-
         return {
             'time': self.times,
             'altitude': self.altitudes,
