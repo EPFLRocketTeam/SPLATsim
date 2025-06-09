@@ -21,6 +21,8 @@ class PlotPanel(ttk.Frame):
         self.plot_acceleration = tk.BooleanVar(value=True) 
         self.plot_velocity = tk.BooleanVar(value=True)
         self.last_results = None
+        self.tabs = []
+        self.tab_names = ['Plot 1', 'Plot 2']
         self.setup_ui()
         
     
@@ -32,7 +34,7 @@ class PlotPanel(ttk.Frame):
         # Results display
         self.setup_results_display()
         
-        self.setup_plot_controls()
+        # self.setup_plot_controls()
         # Plot area (initially empty)
         self.setup_plot_area()
     
@@ -53,15 +55,21 @@ class PlotPanel(ttk.Frame):
             command=self.clear_plot
         ).pack(side=tk.LEFT, padx=5)
         
-    def setup_plot_controls(self):
-        """Setup plot control buttons"""
-        plot_control_frame = ttk.Frame(self)
+    def setup_plot_controls(self, parent_frame):
+        """Setup plot control buttons in the specified parent frame"""
+        plot_control_frame = ttk.Frame(parent_frame)
         plot_control_frame.pack(fill=tk.X, pady=5)
+        
         # Add checkboxes for plot visibility
-        ttk.Checkbutton(plot_control_frame, text="Altitude", variable=self.plot_altitude, command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(plot_control_frame, text="Acceleration", variable=self.plot_acceleration, command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(plot_control_frame, text="Velocity", variable=self.plot_velocity, command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
-
+        ttk.Checkbutton(plot_control_frame, text="Altitude", 
+                    variable=self.plot_altitude, 
+                    command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(plot_control_frame, text="Acceleration", 
+                    variable=self.plot_acceleration, 
+                    command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(plot_control_frame, text="Velocity", 
+                    variable=self.plot_velocity, 
+                    command=self.refresh_plot).pack(side=tk.LEFT, padx=5)
     
     def setup_results_display(self):
         """Setup results text display"""
@@ -70,21 +78,32 @@ class PlotPanel(ttk.Frame):
         
         self.results_text = ScrollableText(results_frame, height=6, width=50)
         self.results_text.pack(fill=tk.BOTH, expand=True)
-    
+
     def setup_plot_area(self):
-        """Setup embedded plot area"""
-        self.plot_frame = ttk.LabelFrame(self, text="Plot", padding=10)
-        self.plot_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        """Setup embedded plot area with tabs"""
+
+        self.notebook = ttk.Notebook(self, padding=10)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
         
-        # Initially empty - plot will be added when requested
-        self.canvas = None
+        # Create tabs
+        for tab in self.tab_names:
+            self.tabs.append(ttk.Frame(self.notebook))
+            self.notebook.add(self.tabs[-1], text=tab)
+        
+        self.setup_plot_controls(self.tabs[0])
+
+    
+        self.canvas = None #TODO: Rename these variables
         self.toolbar = None
         self.figure = None
-        self.setup_placeholder()
     
-    def setup_placeholder(self):
+        self.setup_placeholder(self.tabs[0])  # Setup placeholder for the first tab
+        
+        
+        
+    def setup_placeholder(self, tab):
         """Setup placeholder content when no plot is showing"""
-        self.placeholder_frame = ttk.Frame(self.plot_frame)
+        self.placeholder_frame = ttk.Frame(tab)
         self.placeholder_frame.pack(fill=tk.BOTH, expand=True)  
         # Load and resize image (replace with your image path)
         
@@ -201,12 +220,12 @@ class PlotPanel(ttk.Frame):
         self.figure.suptitle('Parachute Simulation Results')
         
         # Create canvas
-        self.canvas = FigureCanvasTkAgg(self.figure, self.plot_frame)
+        self.canvas = FigureCanvasTkAgg(self.figure, self.tabs[0])
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # Create toolbar
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_frame)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.tabs[0])
         self.toolbar.update()
 
         
