@@ -21,10 +21,9 @@ class PlotPanel(ttk.Frame):
         self.plot_acceleration = tk.BooleanVar(value=True) 
         self.plot_velocity = tk.BooleanVar(value=True)
         self.last_results = None
-        self.tab_names = ['Plot 1', 'Plot 2']
+        self.tab_names = ['Time-Altitude', 'Plot 2']
         self.setup_ui()
         
-    
     def setup_ui(self):
         """Setup the user interface"""
         # Control buttons
@@ -83,27 +82,22 @@ class PlotPanel(ttk.Frame):
         self.notebook = ttk.Notebook(self, padding=10)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         
-        # Initialize lists to store tab references
+        # Initialize lists
         self.tabs = []
-        self.canvas = []
-        self.toolbar = []
-        self.figure = []
-        self.placeholder_frames = []  # Track placeholder frames for each tab
+        self.canvas = [None] * len(self.tab_names)
+        self.toolbar = [None] * len(self.tab_names)
+        self.figure = [None] * len(self.tab_names)
+        self.placeholder_frames = [None] * len(self.tab_names)
         
-        # Create tabs
-        for tab_name in self.tab_names:
+        # Create tabs with placeholders
+        for i, tab_name in enumerate(self.tab_names):
             tab = ttk.Frame(self.notebook)
-            self.tabs.append(tab)  # Store the tab reference
+            self.tabs.append(tab)
             self.notebook.add(tab, text=tab_name)
             
-            # Setup placeholder for each tab
-            placeholder_frame = self.setup_placeholder_for_tab(tab)
-            self.placeholder_frames.append(placeholder_frame)
-            
-            # Initialize corresponding lists for each tab
-            self.canvas.append(None)
-            self.toolbar.append(None)
-            self.figure.append(None)
+            # Create placeholder for each tab
+            placeholder = self.setup_placeholder_for_tab(tab)
+            self.placeholder_frames[i] = placeholder
         
         
     def setup_placeholder_for_tab(self, parent_tab):
@@ -177,50 +171,12 @@ class PlotPanel(ttk.Frame):
         
         self._create_embedded_plot()
     
+    
     def clear_plot(self):
-        """Clear all embedded plots and restore placeholders"""
-        
-        # Clear plots from all tabs
+        """Clear all embedded plots and show placeholders"""
         for i in range(len(self.tabs)):
-            # Clear canvas
-            if i < len(self.canvas) and self.canvas[i]:
-                self.canvas[i].get_tk_widget().destroy()
-                self.canvas[i] = None
-            
-            # Clear toolbar
-            if i < len(self.toolbar) and self.toolbar[i]:
-                self.toolbar[i].destroy()
-                self.toolbar[i] = None
-            
-            # Clear figure
-            if i < len(self.figure) and self.figure[i]:
-                plt.close(self.figure[i])
-                self.figure[i] = None
-            
-            # Clear existing placeholder if it exists
-            if (hasattr(self, 'placeholder_frames') and 
-                i < len(self.placeholder_frames) and 
-                self.placeholder_frames[i]):
-                self.placeholder_frames[i].destroy()
-                self.placeholder_frames[i] = None
-            
-            # Restore placeholder for this tab
-            if i < len(self.tabs) and self.tabs[i]:
-                placeholder_frame = self.setup_placeholder_for_tab(self.tabs[i])
-                
-                # Update placeholder_frames list if it exists
-                if hasattr(self, 'placeholder_frames'):
-                    if i < len(self.placeholder_frames):
-                        self.placeholder_frames[i] = placeholder_frame
-                    else:
-                        # Extend list if needed
-                        while len(self.placeholder_frames) <= i:
-                            self.placeholder_frames.append(None)
-                        self.placeholder_frames[i] = placeholder_frame
-                else:
-                    # Create placeholder_frames list if it doesn't exist
-                    self.placeholder_frames = [None] * len(self.tabs)
-                    self.placeholder_frames[i] = placeholder_frame
+            self._clear_existing_plot(i)
+            self._show_placeholder(i)
 
     def _create_matplotlib_plot(self):
         """Create external matplotlib plot"""
@@ -236,41 +192,61 @@ class PlotPanel(ttk.Frame):
     def _create_embedded_plot(self):
         """Create embedded plot in the GUI"""
         # Clear any existing plot completely
-        if self.canvas[0]:
-            self.canvas[0].get_tk_widget().destroy()
-        if self.toolbar[0]:
-            self.toolbar[0].destroy()
-        if self.figure[0]:
-            plt.close(self.figure[0])
-            
-        # Reset references
-        self.canvas = [None]*len(self.tabs)
-        self.toolbar = [None]*len(self.tabs)
-        self.figure = [None]*len(self.tabs)
+        self._clear_existing_plot(0) 
         
-        if hasattr(self, 'placeholder_frames'):
-            self.placeholder_frames[0].destroy()
-            self.placeholder_frames[0] = None  # Clean up the reference
-
         # Create new figure
         self.figure[0] = Figure(figsize=(10, 6), dpi=100)
         self.figure[0].subplots_adjust(right=0.75)
         
         ax1 = self.figure[0].add_subplot(111)
-        
         self._plot_data(self.figure[0], ax1)
-        
         self.figure[0].suptitle('Parachute Simulation Results')
         
-        # Create canvas
-        for i, tab in enumerate(self.tabs):    
-            self.canvas[i] = FigureCanvasTkAgg(self.figure[i], tab)
-            self.canvas[i].draw()
-            self.canvas[i].get_tk_widget().pack(fill=tk.BOTH, expand=True)  
-            # Create toolbar
-            self.toolbar[i] = NavigationToolbar2Tk(self.canvas[i], tab)
-            self.toolbar[i].update()
+        # Hide placeholder before showing plot
+        self._hide_placeholder(0)
+        
+        # Create canvas and toolbar
+        self.canvas[0] = FigureCanvasTkAgg(self.figure[0], self.tabs[0])
+        self.canvas[0].draw()
+        self.canvas[0].get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        
+        self.toolbar[0] = NavigationToolbar2Tk(self.canvas[0], self.tabs[0])
+        self.toolbar[0].update()
 
+    def _clear_existing_plot(self, tab_index):
+        """Clear existing plot elements for a specific tab"""
+        if tab_index < len(self.canvas) and self.canvas[tab_index]:
+            self.canvas[tab_index].get_tk_widget().destroy()
+            self.canvas[tab_index] = None
+        
+        if tab_index < len(self.toolbar) and self.toolbar[tab_index]:
+            self.toolbar[tab_index].destroy()
+            self.toolbar[tab_index] = None
+        
+        if tab_index < len(self.figure) and self.figure[tab_index]:
+            plt.close(self.figure[tab_index])
+            self.figure[tab_index] = None
+
+    def _hide_placeholder(self, tab_index):
+        """Hide placeholder for a specific tab"""
+        if (hasattr(self, 'placeholder_frames') and 
+            tab_index < len(self.placeholder_frames) and 
+            self.placeholder_frames[tab_index]):
+            self.placeholder_frames[tab_index].pack_forget() 
+
+    def _show_placeholder(self, tab_index):
+        """Show placeholder for a specific tab"""
+        if (hasattr(self, 'placeholder_frames') and 
+            tab_index < len(self.placeholder_frames) and 
+            self.placeholder_frames[tab_index]):
+            self.placeholder_frames[tab_index].pack(fill=tk.BOTH, expand=True)
+        else:
+            # Create placeholder if it doesn't exist
+            if tab_index < len(self.tabs):
+                placeholder = self.setup_placeholder_for_tab(self.tabs[tab_index])
+                if not hasattr(self, 'placeholder_frames'):
+                    self.placeholder_frames = [None] * len(self.tabs)
+                self.placeholder_frames[tab_index] = placeholder
         
     def refresh_plot(self):
         """Refresh the embedded plot with current visibility settings"""

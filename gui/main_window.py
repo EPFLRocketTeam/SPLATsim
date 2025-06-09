@@ -168,21 +168,22 @@ class ParachuteSimulationGUI:
                     parachute=parachute,
                     reefed=params['simulation']['reefed'],
                     first_event_altitude=params['simulation']['first_altitude'],
-                    second_event_altitude=params['simulation']['second_altitude']
+                    second_event_altitude=params['simulation']['second_altitude'],
+                    time_step=params['simulation']['time_step'],
+                    max_time=params['simulation']['max_time']
                 )
             else:
                 simulation = SingleEventSimulation(
                     rocket=rocket,
                     parachute=parachute,
                     reefed=params['simulation']['reefed'],
-                    first_event_altitude=params['simulation']['first_altitude']
+                    first_event_altitude=params['simulation']['first_altitude'],
+                    time_step=params['simulation']['time_step'],
+                    max_time=params['simulation']['max_time']
                 )
             
             # Run simulation
-            results = simulation.simulate(
-                time_step=params['simulation']['time_step'],
-                max_time=params['simulation']['max_time']
-            )
+            results = simulation.simulate()
             
             # Display results
             self.plot_panel.display_results(results)
