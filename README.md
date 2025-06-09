@@ -20,8 +20,8 @@ SPLATsim is a simulation application developed for analysing rocket parachute re
 
 
 ## **Simulation Types**
-- **Single Event**: Traditional single parachute deployment
-- **Dual Event**: Advanced two-stage deployment with reefing
+- **Single Event**: Single parachute deployment
+- **Dual Event**: Two-stage deployment with reefing
 
 ### Reefing Simulation
 The reefed drag coefficient is found empirically. Due to limited data, this is an approximation of the true reefed $C_d$ and it may vary quite a bit
@@ -86,7 +86,7 @@ splat/
 
 ## Version History
 
-- **v1.0.0** (June 2025) - Initial release
+- **v0.1.0** (June 2025) - Initial release
 ---
 
 <p align="center">
