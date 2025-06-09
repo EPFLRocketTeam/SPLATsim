@@ -293,8 +293,8 @@ For detailed information, consult the user manual."""
         """Handle application closing"""
         if messagebox.askokcancel("Quit", "Do you want to quit the application?"):
             # Clean up any resources
-            if hasattr(self.plot_panel, 'figure') and self.plot_panel.figure:
+            if hasattr(self.plot_panel, 'figure') and self.plot_panel.figure[0]: #TODO: Close all figures
                 import matplotlib.pyplot as plt
-                plt.close(self.plot_panel.figure)
+                plt.close(self.plot_panel.figure[0])
             
             self.root.destroy()

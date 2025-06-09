@@ -19,7 +19,6 @@ class PlotPanel(ttk.Frame):
         self.plot_acceleration = tk.BooleanVar(value=True) 
         self.plot_velocity = tk.BooleanVar(value=True)
         self.last_results = None
-        self.tabs = []
         self.tab_names = ['Plot 1', 'Plot 2']
         self.setup_ui()
         
@@ -79,39 +78,55 @@ class PlotPanel(ttk.Frame):
 
     def setup_plot_area(self):
         """Setup embedded plot area with tabs"""
-
         self.notebook = ttk.Notebook(self, padding=10)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         
+        # Initialize lists to store tab references
+        self.tabs = []
+        self.canvas = []
+        self.toolbar = []
+        self.figure = []
+        self.placeholder_frames = []  # Track placeholder frames for each tab
+        
         # Create tabs
-        for tab in self.tab_names:
-            self.tabs.append(ttk.Frame(self.notebook))
-            self.notebook.add(self.tabs[-1], text=tab)
+        for tab_name in self.tab_names:
+            tab = ttk.Frame(self.notebook)
+            self.tabs.append(tab)  # Store the tab reference
+            self.notebook.add(tab, text=tab_name)
+            
+            # Setup placeholder for each tab
+            placeholder_frame = self.setup_placeholder_for_tab(tab)
+            self.placeholder_frames.append(placeholder_frame)
+            
+            # Initialize corresponding lists for each tab
+            self.canvas.append(None)
+            self.toolbar.append(None)
+            self.figure.append(None)
         
-        self.setup_plot_controls(self.tabs[0])
+        
+    def setup_placeholder_for_tab(self, parent_tab):
+        """Setup placeholder content for a specific tab"""
+        placeholder_frame = ttk.Frame(parent_tab)
+        placeholder_frame.pack(fill=tk.BOTH, expand=True)
+        
+        try:
 
-    
-        self.canvas = None #TODO: Rename these variables
-        self.toolbar = None
-        self.figure = None
-    
-        self.setup_placeholder(self.tabs[0])  # Setup placeholder for the first tab
+            image_path = "assets/RE_TRANS.png"  # Change this to your image path
+            image = Image.open(image_path)
+            image = image.resize((400, 400), Image.Resampling.LANCZOS)
+            placeholder_image = ImageTk.PhotoImage(image)
+            
+            # Create label with image
+            image_label = ttk.Label(placeholder_frame, image=placeholder_image)
+            image_label.image = placeholder_image  # Keep a reference to prevent garbage collection
+            image_label.pack(expand=True)
+        except Exception as e:
+            # Fallback if image loading fails
+            print(f"Could not load placeholder image: {e}")
+            fallback_label = ttk.Label(placeholder_frame, text="No Plot Data\n\nRun a simulation to see results here")
+            fallback_label.pack(expand=True)
         
-        
-        
-    def setup_placeholder(self, tab):
-        """Setup placeholder content when no plot is showing"""
-        self.placeholder_frame = ttk.Frame(tab)
-        self.placeholder_frame.pack(fill=tk.BOTH, expand=True)  
-        # Load and resize image (replace with your image path)
-        image_path = "assets/RE_TRANS.png"  # Change this to your image path
-        image = Image.open(image_path)
-        image = image.resize((400, 400), Image.Resampling.LANCZOS)
-        self.placeholder_image = ImageTk.PhotoImage(image)
-        
-        # Create label with image
-        image_label = ttk.Label(self.placeholder_frame, image=self.placeholder_image)
-        image_label.pack(expand=True)
+        return placeholder_frame 
     
     # TODO: Check what results are displayed
     def display_results(self, results):
@@ -161,21 +176,49 @@ class PlotPanel(ttk.Frame):
         self._create_embedded_plot()
     
     def clear_plot(self):
-        """Clear the embedded plot"""
-        if self.canvas:
-            self.canvas.get_tk_widget().destroy()
-            self.canvas = None
+        """Clear all embedded plots and restore placeholders"""
         
-        if self.toolbar:
-            self.toolbar.destroy()
-            self.toolbar = None
-        
-        if self.figure:
-            plt.close(self.figure)
-            self.figure = None
-        if hasattr(self, 'placeholder_frame'):
-            self.placeholder_frame.destroy()
-        self.setup_placeholder()
+        # Clear plots from all tabs
+        for i in range(len(self.tabs)):
+            # Clear canvas
+            if i < len(self.canvas) and self.canvas[i]:
+                self.canvas[i].get_tk_widget().destroy()
+                self.canvas[i] = None
+            
+            # Clear toolbar
+            if i < len(self.toolbar) and self.toolbar[i]:
+                self.toolbar[i].destroy()
+                self.toolbar[i] = None
+            
+            # Clear figure
+            if i < len(self.figure) and self.figure[i]:
+                plt.close(self.figure[i])
+                self.figure[i] = None
+            
+            # Clear existing placeholder if it exists
+            if (hasattr(self, 'placeholder_frames') and 
+                i < len(self.placeholder_frames) and 
+                self.placeholder_frames[i]):
+                self.placeholder_frames[i].destroy()
+                self.placeholder_frames[i] = None
+            
+            # Restore placeholder for this tab
+            if i < len(self.tabs) and self.tabs[i]:
+                placeholder_frame = self.setup_placeholder_for_tab(self.tabs[i])
+                
+                # Update placeholder_frames list if it exists
+                if hasattr(self, 'placeholder_frames'):
+                    if i < len(self.placeholder_frames):
+                        self.placeholder_frames[i] = placeholder_frame
+                    else:
+                        # Extend list if needed
+                        while len(self.placeholder_frames) <= i:
+                            self.placeholder_frames.append(None)
+                        self.placeholder_frames[i] = placeholder_frame
+                else:
+                    # Create placeholder_frames list if it doesn't exist
+                    self.placeholder_frames = [None] * len(self.tabs)
+                    self.placeholder_frames[i] = placeholder_frame
 
     def _create_matplotlib_plot(self):
         """Create external matplotlib plot"""
@@ -191,39 +234,40 @@ class PlotPanel(ttk.Frame):
     def _create_embedded_plot(self):
         """Create embedded plot in the GUI"""
         # Clear any existing plot completely
-        if self.canvas:
-            self.canvas.get_tk_widget().destroy()
-        if self.toolbar:
-            self.toolbar.destroy()
-        if self.figure:
-            plt.close(self.figure)
+        if self.canvas[0]:
+            self.canvas[0].get_tk_widget().destroy()
+        if self.toolbar[0]:
+            self.toolbar[0].destroy()
+        if self.figure[0]:
+            plt.close(self.figure[0])
             
         # Reset references
-        self.canvas = None
-        self.toolbar = None
-        self.figure = None
+        self.canvas = [None]*len(self.tabs)
+        self.toolbar = [None]*len(self.tabs)
+        self.figure = [None]*len(self.tabs)
         
-        if hasattr(self, 'placeholder_frame'):
-            self.placeholder_frame.destroy()
+        if hasattr(self, 'placeholder_frames'):
+            self.placeholder_frames[0].destroy()
+            self.placeholder_frames[0] = None  # Clean up the reference
 
         # Create new figure
-        self.figure = Figure(figsize=(10, 6), dpi=100)
-        self.figure.subplots_adjust(right=0.75)
+        self.figure[0] = Figure(figsize=(10, 6), dpi=100)
+        self.figure[0].subplots_adjust(right=0.75)
         
-        ax1 = self.figure.add_subplot(111)
+        ax1 = self.figure[0].add_subplot(111)
         
-        self._plot_data(self.figure, ax1)
+        self._plot_data(self.figure[0], ax1)
         
-        self.figure.suptitle('Parachute Simulation Results')
+        self.figure[0].suptitle('Parachute Simulation Results')
         
         # Create canvas
-        self.canvas = FigureCanvasTkAgg(self.figure, self.tabs[0])
-        self.canvas.draw()
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        
-        # Create toolbar
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.tabs[0])
-        self.toolbar.update()
+        for i, tab in enumerate(self.tabs):    
+            self.canvas[i] = FigureCanvasTkAgg(self.figure[i], tab)
+            self.canvas[i].draw()
+            self.canvas[i].get_tk_widget().pack(fill=tk.BOTH, expand=True)  
+            # Create toolbar
+            self.toolbar[i] = NavigationToolbar2Tk(self.canvas[i], tab)
+            self.toolbar[i].update()
 
         
     def refresh_plot(self):
@@ -282,12 +326,12 @@ class PlotPanel(ttk.Frame):
     # FIXME: Not Used!
     def export_plot(self, filename, dpi=300):
         """Export current plot to file"""
-        if self.figure is None:
+        if self.figure[0] is None:
             messagebox.showwarning("No Plot", "Please create a plot first.")
             return
         
         try:
-            self.figure.savefig(filename, dpi=dpi, bbox_inches='tight')
+            self.figure[0].savefig(filename, dpi=dpi, bbox_inches='tight')
             messagebox.showinfo("Export Successful", f"Plot exported to {filename}")
         except Exception as e:
             messagebox.showerror("Export Error", f"Failed to export plot: {str(e)}")
