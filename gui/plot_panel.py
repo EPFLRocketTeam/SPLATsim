@@ -106,20 +106,29 @@ class PlotPanel(ttk.Frame):
             self.figure.append(None)
         
         
-    def setup_placeholder(self, tab):
-        """Setup placeholder content when no plot is showing"""
-        self.placeholder_frame = ttk.Frame(tab)
-        self.placeholder_frame.pack(fill=tk.BOTH, expand=True)  
-        # Load and resize image (replace with your image path)
+    def setup_placeholder_for_tab(self, parent_tab):
+        """Setup placeholder content for a specific tab"""
+        placeholder_frame = ttk.Frame(parent_tab)
+        placeholder_frame.pack(fill=tk.BOTH, expand=True)
         
-        image_path = get_resource_path("assets/RE_TRANS.png")  # Change this to your image path
-        image = Image.open(image_path)
-        image = image.resize((400, 400), Image.Resampling.LANCZOS)
-        self.placeholder_image = ImageTk.PhotoImage(image)
+        try:
+
+            image_path = get_resource_path("assets/RE_TRANS.png")  # Change this to your image path
+            image = Image.open(image_path)
+            image = image.resize((400, 400), Image.Resampling.LANCZOS)
+            placeholder_image = ImageTk.PhotoImage(image)
+            
+            # Create label with image
+            image_label = ttk.Label(placeholder_frame, image=placeholder_image)
+            image_label.image = placeholder_image  # Keep a reference to prevent garbage collection
+            image_label.pack(expand=True)
+        except Exception as e:
+            # Fallback if image loading fails
+            print(f"Could not load placeholder image: {e}")
+            fallback_label = ttk.Label(placeholder_frame, text="No Plot Data\n\nRun a simulation to see results here")
+            fallback_label.pack(expand=True)
         
-        # Create label with image
-        image_label = ttk.Label(self.placeholder_frame, image=self.placeholder_image)
-        image_label.pack(expand=True)
+        return placeholder_frame 
     
     # TODO: Check what results are displayed
     def display_results(self, results):
