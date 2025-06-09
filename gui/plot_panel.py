@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from PIL import Image, ImageTk
+from utils.functions import get_resource_path
+
 
 
 from .widgets import ScrollableText
@@ -70,7 +72,8 @@ class PlotPanel(ttk.Frame):
         self.placeholder_frame = ttk.Frame(self.plot_frame)
         self.placeholder_frame.pack(fill=tk.BOTH, expand=True)  
         # Load and resize image (replace with your image path)
-        image_path = "assets/RE_TRANS.png"  # Change this to your image path
+        
+        image_path = get_resource_path("assets/RE_TRANS.png")  # Change this to your image path
         image = Image.open(image_path)
         image = image.resize((400, 400), Image.Resampling.LANCZOS)
         self.placeholder_image = ImageTk.PhotoImage(image)

@@ -8,6 +8,7 @@ import tkinter as tk
 import sys
 import os
 from PIL import Image, ImageTk
+from utils.functions import get_resource_path
 
 from ctypes import windll
 windll.shcore.SetProcessDpiAwareness(1)
@@ -17,15 +18,22 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from gui import ParachuteSimulationGUI
 
-
 def main():
     """Main application entry point"""
     try:
         # Create the main window
         root = tk.Tk()
-        ico = Image.open('assets/ERT_SMALL.png')
-        photo = ImageTk.PhotoImage(ico)
-        root.wm_iconphoto(False, photo)
+        
+        # Load icon with proper path resolution
+        try:
+            icon_path = get_resource_path('assets/ERT_SMALL.png')
+            ico = Image.open(icon_path)
+            photo = ImageTk.PhotoImage(ico)
+            root.wm_iconphoto(False, photo)
+        except Exception as e:
+            print(f"Warning: Could not load icon: {e}")
+            # Continue without icon
+        
         # Create and start the application
         app = ParachuteSimulationGUI(root)
         
