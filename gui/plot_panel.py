@@ -99,6 +99,7 @@ class PlotPanel(ttk.Frame):
             placeholder = self.setup_placeholder_for_tab(tab)
             self.placeholder_frames[i] = placeholder
         
+        self.setup_plot_controls(self.tabs[0])  # Setup plot controls in the first tab
         
     def setup_placeholder_for_tab(self, parent_tab):
         """Setup placeholder content for a specific tab"""
@@ -163,13 +164,14 @@ class PlotPanel(ttk.Frame):
         
         self._create_matplotlib_plot()
     
-    def show_embedded_plot(self):
+    def create_plots(self):
         """Show plot embedded in the GUI"""
         if self.last_results is None:
             messagebox.showwarning("No Results", "Please run a simulation first.")
             return
         
-        self._create_embedded_plot()
+        self._create_main_plot()
+        self._create_drift_plot()
     
     
     def clear_plot(self):
@@ -188,8 +190,9 @@ class PlotPanel(ttk.Frame):
         plt.title('Parachute Simulation Results')
         plt.tight_layout()
         plt.show()
+
     
-    def _create_embedded_plot(self):
+    def _create_main_plot(self):
         """Create embedded plot in the GUI"""
         # Clear any existing plot completely
         self._clear_existing_plot(0) 
@@ -204,7 +207,6 @@ class PlotPanel(ttk.Frame):
         
         # Hide placeholder before showing plot
         self._hide_placeholder(0)
-        
         # Create canvas and toolbar
         self.canvas[0] = FigureCanvasTkAgg(self.figure[0], self.tabs[0])
         self.canvas[0].draw()
@@ -212,6 +214,39 @@ class PlotPanel(ttk.Frame):
         
         self.toolbar[0] = NavigationToolbar2Tk(self.canvas[0], self.tabs[0])
         self.toolbar[0].update()
+    
+    def _create_drift_plot(self):
+        """Create drift plot in the GUI"""
+        # Clear any existing plot completely
+        self._clear_existing_plot(1) 
+        
+        # Create new figure
+        self.figure[1] = Figure(figsize=(10, 6), dpi=100)
+        self.figure[1].subplots_adjust(right=0.75)
+        
+        ax1 = self.figure[1].add_subplot(111)
+        
+        # Plot drift data
+        results = self.last_results
+        for vel in results['drift'].keys():
+            a, b = zip(*results['drift'][vel])
+            ax1.plot(b, a, label='X Drift', color='blue')        
+                
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('Drift (m)')
+        ax1.set_title('Drift Over Time')
+        ax1.legend()
+        
+        # Hide placeholder before showing plot
+        self._hide_placeholder(1)
+        
+        # Create canvas and toolbar
+        self.canvas[1] = FigureCanvasTkAgg(self.figure[1], self.tabs[1])
+        self.canvas[1].draw()
+        self.canvas[1].get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        
+        self.toolbar[1] = NavigationToolbar2Tk(self.canvas[1], self.tabs[1])
+        self.toolbar[1].update()
 
     def _clear_existing_plot(self, tab_index):
         """Clear existing plot elements for a specific tab"""
@@ -252,7 +287,8 @@ class PlotPanel(ttk.Frame):
         """Refresh the embedded plot with current visibility settings"""
         if self.last_results:
             # Force a complete recreation of the embedded plot
-            self._create_embedded_plot()
+            self._create_main_plot()
+            self._create_drift_plot()
     
     def _plot_data(self, fig, ax1):
         """Plot the simulation data on given axes"""
@@ -329,5 +365,6 @@ class PlotPanel(ttk.Frame):
             'velocity_range': (min(results['velocity']), max(results['velocity'])),
             'acceleration_range': (min(results['acceleration']), max(results['acceleration'])),
             'landing_velocity': results['landing_velocity'],
-            'flight_time': results['flight_time']
+            'flight_time': results['flight_time'],
+            'drift': results['drift']
         }

@@ -5,7 +5,8 @@ class SimulationEngine(ABC):
     GRAVITY = 9.81
     AIR_DENSITY = 1.124  # kg/m^3 
     
-    def __init__(self, rocket, parachute, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300):
+    def __init__(self, rocket, parachute, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step=1):
+        # --- Configuration / Input parameters ---
         self.rocket = rocket
         self.parachute = parachute
         self.reefed = reefed
@@ -13,23 +14,29 @@ class SimulationEngine(ABC):
         self.time_step = time_step
         self.max_time = max_time
 
-        # Initialize simulation state variables
+        # --- Initial state ---
         self.altitude = 0.0
         self.velocity = initial_velocity
-        self.acceleration = -self.GRAVITY
+        self.acceleration = -self.GRAVITY  # assuming GRAVITY is defined in the class
+
+        # --- Time-series tracking ---
         self.times = []
         self.altitudes = []
         self.velocities = []
         self.accelerations = []
-        self.max_drift_velocity = 20 # m/s, maximum drift velocity for parachute descent
-        self.drift_velocity_step = 2 # m/s, step size for drift velocity simulation
+
+        # --- Drift simulation parameters ---
+        self.max_drift_velocity = 20     # m/s
+        self.drift_time_step = drift_time_step  # seconds
+        self.drift_velocity_step = 2     # m/s
         self.drift = self.generate_drift_dict()
+        self.step_count = 0
 
     def generate_drift_dict(self):
         """Generate a dictionary with drift velocities as keys and [0] as values."""
         drift_dict = {}
         for velocity in range(0, self.max_drift_velocity + 1, self.drift_velocity_step):
-            drift_dict[velocity] = [0]
+            drift_dict[velocity] = [[self.altitude, 0.0]]
         return drift_dict
     
     def calculate_recovery_forces(self, Cd, area):
@@ -45,14 +52,13 @@ class SimulationEngine(ABC):
         self.velocities.append(self.velocity)
         self.accelerations.append(self.acceleration)
     
-    def simulate_drift(self):
+    def simulate_drift_step(self):
         """Simulate drift based on wind velocities"""
-        drift_time_step = 1.0
-        if self.time % drift_time_step < 1e-6:  # Update drift every second
+        if self.step_count % int(round(self.drift_time_step / self.time_step)) == 0 : 
             for wind_velocity in self.drift.keys():
-                old_position = self.drift[wind_velocity][-1]
-                new_position = old_position + wind_velocity * drift_time_step
-                self.drift[wind_velocity].append(new_position)
+                old_position = self.drift[wind_velocity][-1][1]
+                new_position = old_position + wind_velocity * self.drift_time_step
+                self.drift[wind_velocity].append([self.altitude,new_position])
 
 
     def update_state(self):
@@ -60,12 +66,13 @@ class SimulationEngine(ABC):
         self.altitude += self.velocity * self.time_step
         self.velocity += self.acceleration * self.time_step
         self.time += self.time_step
+        self.step_count += 1
         
 
     def simulate_freefall_phase(self):
         """Simulate free fall until parachute deployment"""
         while self.altitude > 0 and self.time < self.parachute.opening_time and self.time < self.max_time:
-            self.simulate_drift()
+            self.simulate_drift_step()
             area = math.pi * (self.rocket.diameter / 2) ** 2
             Cd = self.rocket.drag_coefficient
             self.acceleration = self.calculate_recovery_forces(Cd, area) / self.rocket.mass
@@ -77,7 +84,7 @@ class SimulationEngine(ABC):
     def simulate_parachute_phase(self, end_altitude=0):
         """Simulate parachute descent until landing"""
         while self.altitude > end_altitude and self.time < self.max_time:
-            self.simulate_drift()
+            self.simulate_drift_step()
             if self.reefed:
                 if self.parachute.reefed_projected_area is None:
                     raise ValueError("Reefed parachute does not have a projected area defined. Check reefing ratio")
@@ -99,8 +106,8 @@ class SimulationEngine(ABC):
 
 
 class SingleEventSimulation(SimulationEngine):
-    def __init__(self, rocket, parachute, first_event_altitude, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300):
-        super().__init__(rocket, parachute, reefed, initial_velocity, time, time_step, max_time)
+    def __init__(self, rocket, parachute, first_event_altitude, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step = 1):
+        super().__init__(rocket, parachute, reefed, initial_velocity, time, time_step, max_time, drift_time_step)
         self.altitude = first_event_altitude
       
     def simulate(self):
@@ -118,12 +125,13 @@ class SingleEventSimulation(SimulationEngine):
             'landing_velocity': self.velocity,
             'flight_time': self.time,
             'reefed_Cd': self.parachute.reefed_Cd if self.reefed else None,
+            'drift': self.drift
         }
 
 
 class DualEventSimulation(SimulationEngine):
-    def __init__(self, rocket, parachute, first_event_altitude, second_event_altitude, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300):
-        super().__init__(rocket, parachute, reefed, initial_velocity, time, time_step, max_time)
+    def __init__(self, rocket, parachute, first_event_altitude, second_event_altitude, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step = 1):
+        super().__init__(rocket, parachute, reefed, initial_velocity, time, time_step, max_time, drift_time_step)
         self.altitude = first_event_altitude
         self.second_event_altitude = second_event_altitude
       
@@ -148,6 +156,7 @@ class DualEventSimulation(SimulationEngine):
             'landing_velocity': self.velocity,
             'flight_time': self.time,
             'reefed_Cd': self.parachute.reefed_Cd,
+            'drift': self.drift
         }
 
 

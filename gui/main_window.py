@@ -54,7 +54,7 @@ class ParachuteSimulationGUI:
         view_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View", menu=view_menu)
         view_menu.add_command(label="Show External Plot", command=self.plot_panel.show_external_plot)
-        view_menu.add_command(label="Show Embedded Plot", command=self.plot_panel.show_embedded_plot)
+        view_menu.add_command(label="Show Embedded Plot", command=self.plot_panel.create_plots)
         view_menu.add_command(label="Clear Plot", command=self.plot_panel.clear_plot)
         
         # Help menu
@@ -187,7 +187,7 @@ class ParachuteSimulationGUI:
             
             # Display results
             self.plot_panel.display_results(results)
-            self.plot_panel.show_embedded_plot()
+            self.plot_panel.create_plots()
             self.status_var.set(f"Simulation complete - Landing: {results['landing_velocity']:.1f} m/s")
             
         except Exception as e:
