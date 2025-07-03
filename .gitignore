@@ -3,3 +3,4 @@ __pycache__/
 build/
 dist/
 how_to_build_exe.md
+testing.*
