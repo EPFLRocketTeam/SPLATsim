@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from PIL import Image, ImageTk
@@ -21,7 +24,7 @@ class PlotPanel(ttk.Frame):
         self.plot_acceleration = tk.BooleanVar(value=True) 
         self.plot_velocity = tk.BooleanVar(value=True)
         self.last_results = None
-        self.tab_names = ['Time-Altitude', 'Plot 2']
+        self.tab_names = ['Time-Altitude', 'Recovery Drift']
         self.setup_ui()
         
     def setup_ui(self):
@@ -219,23 +222,30 @@ class PlotPanel(ttk.Frame):
         """Create drift plot in the GUI"""
         # Clear any existing plot completely
         self._clear_existing_plot(1) 
-        
+
         # Create new figure
         self.figure[1] = Figure(figsize=(10, 6), dpi=100)
         self.figure[1].subplots_adjust(right=0.75)
-        
         ax1 = self.figure[1].add_subplot(111)
-        
-        # Plot drift data
+
+        # Get the drift data
         results = self.last_results
-        for vel in results['drift'].keys():
-            a, b = zip(*results['drift'][vel])
-            ax1.plot(b, a, label='X Drift', color='blue')        
-                
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Drift (m)')
-        ax1.set_title('Drift Over Time')
-        ax1.legend()
+        velocities = sorted(results['drift'].keys())  # Ensure consistent order
+        num_vels = len(velocities)
+
+        # Generate colormap (green to red)
+        colormap = cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn: green (low) to red (high)
+        colors = [colormap(i) for i in np.linspace(0, 1, num_vels)]
+
+        # Plot each drift line with corresponding color
+        for idx, vel in enumerate(velocities):
+            alt, drift = zip(*results['drift'][vel])
+            ax1.plot(drift, alt, label=f"{vel} m/s", color=colors[idx])
+
+        ax1.set_xlabel('Drift (m)')
+        ax1.set_ylabel('Altitude (m)')
+        ax1.set_title('Recovery Drift')
+        ax1.legend(title="Horizontal Velocity", bbox_to_anchor=(1.05, 1), loc='upper left')
         
         # Hide placeholder before showing plot
         self._hide_placeholder(1)

@@ -15,7 +15,7 @@ class SimulationEngine(ABC):
         self.max_time = max_time
 
         # --- Initial state ---
-        self.altitude = 0.0
+        self.altitude = None  # to be set in derived classes
         self.velocity = initial_velocity
         self.acceleration = -self.GRAVITY  # assuming GRAVITY is defined in the class
 
