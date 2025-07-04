@@ -38,6 +38,7 @@ class InputPanel(ttk.Frame):
         self.first_altitude = tk.DoubleVar(value=550.0)
         self.second_altitude = tk.DoubleVar(value=500.0)
         self.reefed = tk.BooleanVar(value=True)
+        self.launch_angle = tk.DoubleVar(value=90.0)
 
         # Simulation parameters
         self.time_step = tk.DoubleVar(value=0.001)
@@ -102,6 +103,7 @@ class InputPanel(ttk.Frame):
         
         # Reefed checkbox
         self.reefed_checkbox = self.flight_frame.add_checkbox("Use Reefing", self.reefed)
+        self.flight_frame.add_parameter("Launch Angle (degrees):", self.launch_angle)
 
     def setup_simulation_parameters(self):
         """Setup simulation parameter inputs"""
@@ -153,6 +155,7 @@ class InputPanel(ttk.Frame):
                 'type': self.sim_type.get(),
                 'first_altitude': self.first_altitude.get(),
                 'second_altitude': self.second_altitude.get(),
+                'launch_angle': self.launch_angle.get(),
                 'time_step': self.time_step.get(),
                 'max_time': self.max_time.get(),
                 'reefed': self.reefed.get()

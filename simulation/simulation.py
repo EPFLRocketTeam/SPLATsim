@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 import math
 
 class SimulationEngine(ABC):
-    GRAVITY = 9.81
+    GRAVITY = - 9.81
     AIR_DENSITY = 1.124  # kg/m^3 
     
-    def __init__(self, rocket, parachute, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step=1):
+    def __init__(self, rocket, parachute, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step=1, launch_angle=90):
         # --- Configuration / Input parameters ---
         self.rocket = rocket
         self.parachute = parachute
@@ -13,15 +13,22 @@ class SimulationEngine(ABC):
         self.time = time
         self.time_step = time_step
         self.max_time = max_time
+        self.launch_angle = launch_angle * math.pi/180
 
         # --- Initial state ---
         self.altitude = None  # to be set in derived classes
-        self.velocity = initial_velocity
-        self.acceleration = -self.GRAVITY  # assuming GRAVITY is defined in the class
-
+        self.vvelocity = initial_velocity
+        self.hvelocity = 0.0
+        self.vacceleration = self.GRAVITY  # assuming GRAVITY is defined in the class
+        self.hacceleration = 0.0
+        self.acceleration = -self.GRAVITY
+        # self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
+        # self.flight_angle = 0 # radians, angle of flight direction relative to horizontal axis -> at apogee it is assumed horizontal
         # --- Time-series tracking ---
         self.times = []
         self.altitudes = []
+        self.vvelocities = []
+        self.hvelocities = []
         self.velocities = []
         self.accelerations = []
 
@@ -31,7 +38,39 @@ class SimulationEngine(ABC):
         self.drift_velocity_step = 2     # m/s
         self.drift = self.generate_drift_dict()
         self.step_count = 0
+    
+    @property
+    def velocity(self):
+        """Calculate the total velocity of the rocket."""
+        try:
+            return  math.sqrt(self.vvelocity**2 + self.hvelocity**2)
+        except:
+            raise ValueError("Error calculating velocity.Try reducing time step")
+    
+    @property
+    def flight_angle(self):
+        """Calculate flight angle based on vertical and horizontal velocities. -> Angle from horizontal axis."""
+        if self.hvelocity == 0:
+            return - math.pi / 2
+        return math.atan2(self.vvelocity, self.hvelocity)
 
+    # @property
+    # def vacceleration(self):
+    #     return math.sin(abs(self.flight_angle)) * self.acceleration  # vertical acceleration minus gravity component
+    
+    # @property
+    # def hacceleration(self):
+    #     return math.cos(abs(self.flight_angle)) * self.acceleration
+
+    
+    def get_initial_horizontal_velocity(self):
+        """Set the horizontal velocity of the rocket at parachute opening. Neglecting friction and wind."""
+        Vv = math.sqrt(2 * abs(self.GRAVITY) * self.altitude)  # vertical velocity at launch
+        if self.launch_angle == math.pi / 2:
+            return 0.0
+        Vh = Vv / math.tan(self.launch_angle)  # horizontal velocity
+        return Vh
+        
     def generate_drift_dict(self):
         """Generate a dictionary with drift velocities as keys and [0] as values."""
         drift_dict = {}
@@ -39,11 +78,8 @@ class SimulationEngine(ABC):
             drift_dict[velocity] = [[self.altitude, 0.0]]
         return drift_dict
     
-    def calculate_recovery_forces(self, Cd, area):
-        drag_force = 0.5 * self.AIR_DENSITY * self.velocity**2 * Cd * area
-        weight = self.rocket.mass * self.GRAVITY
-        net_force = drag_force - weight  
-        return net_force
+    def calculate_parachute_force(self, Cd, area):
+        return 0.5 * self.AIR_DENSITY * self.velocity**2 * Cd * area
     
     def store_state(self):
         """Store current simulation state"""
@@ -51,6 +87,8 @@ class SimulationEngine(ABC):
         self.altitudes.append(self.altitude)
         self.velocities.append(self.velocity)
         self.accelerations.append(self.acceleration)
+        self.vvelocities.append(self.vvelocity)
+        self.hvelocities.append(self.hvelocity)
     
     def simulate_drift_step(self):
         """Simulate drift based on wind velocities"""
@@ -63,8 +101,10 @@ class SimulationEngine(ABC):
 
     def update_state(self):
         """Update the state of the simulation"""
-        self.altitude += self.velocity * self.time_step
-        self.velocity += self.acceleration * self.time_step
+
+        self.vvelocity += self.vacceleration * self.time_step
+        self.hvelocity -= self.hacceleration * self.time_step
+        self.altitude += self.vvelocity * self.time_step
         self.time += self.time_step
         self.step_count += 1
         
@@ -75,7 +115,10 @@ class SimulationEngine(ABC):
             self.simulate_drift_step()
             area = math.pi * (self.rocket.diameter / 2) ** 2
             Cd = self.rocket.drag_coefficient
-            self.acceleration = self.calculate_recovery_forces(Cd, area) / self.rocket.mass
+            parachute_force = self.calculate_parachute_force(Cd, area) / self.rocket.mass
+            self.hacceleration = round(math.cos(abs(self.flight_angle)) * parachute_force, 10)
+            self.vacceleration = math.sin(abs(self.flight_angle)) * parachute_force + self.GRAVITY
+            self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
             self.store_state()
             self.update_state()
         
@@ -94,7 +137,11 @@ class SimulationEngine(ABC):
                 area = self.parachute.open_projected_area
                 Cd = self.parachute.open_Cd
 
-            self.acceleration = self.calculate_recovery_forces(Cd, area) / self.rocket.mass
+            parachute_force = self.calculate_parachute_force(Cd, area) / self.rocket.mass
+            self.hacceleration = round(math.cos(abs(self.flight_angle)) * parachute_force, 10)
+            self.vacceleration = math.sin(abs(self.flight_angle)) * parachute_force + self.GRAVITY
+            self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
+
             self.store_state()           
             self.update_state()
         
@@ -106,9 +153,10 @@ class SimulationEngine(ABC):
 
 
 class SingleEventSimulation(SimulationEngine):
-    def __init__(self, rocket, parachute, first_event_altitude, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step = 1):
-        super().__init__(rocket, parachute, reefed, initial_velocity, time, time_step, max_time, drift_time_step)
+    def __init__(self, rocket, parachute, first_event_altitude, **kwargs):
+        super().__init__(rocket, parachute, **kwargs)
         self.altitude = first_event_altitude
+        self.hvelocity = self.get_initial_horizontal_velocity()  # Set initial horizontal velocity
       
     def simulate(self):
         """Run single event simulation with two phases"""       
@@ -121,6 +169,8 @@ class SingleEventSimulation(SimulationEngine):
             'time': self.times,
             'altitude': self.altitudes,
             'velocity': self.velocities,
+            'vvelocity': self.vvelocities,
+            'hvelocity': self.hvelocities,
             'acceleration': self.accelerations,
             'landing_velocity': self.velocity,
             'flight_time': self.time,
@@ -130,28 +180,36 @@ class SingleEventSimulation(SimulationEngine):
 
 
 class DualEventSimulation(SimulationEngine):
-    def __init__(self, rocket, parachute, first_event_altitude, second_event_altitude, reefed=True, initial_velocity=0.0, time = 0.0, time_step = 0.001, max_time=300, drift_time_step = 1):
-        super().__init__(rocket, parachute, reefed, initial_velocity, time, time_step, max_time, drift_time_step)
+    def __init__(self, rocket, parachute, first_event_altitude, second_event_altitude, **kwargs):
+        super().__init__(rocket, parachute, **kwargs)
         self.altitude = first_event_altitude
         self.second_event_altitude = second_event_altitude
+        self.hvelocity = self.get_initial_horizontal_velocity()  # Set initial horizontal velocity
+        print("Initial horizontal velocity:", self.velocity)
+
       
     def simulate(self, initial_velocity=0.0, time_step=0.1, max_time=300):
         """Run dual event simulation with three phases"""
         # Phase 1: Free fall until parachute deployment
         self.simulate_freefall_phase()
+        print("Free fall phase completed. Current altitude:", self.altitude, "Current velocity:", self.velocity, "Time:", self.time)
         
         # Phase 2: Reefed Parachute descent until landing
         self.reefed = True
         self.simulate_parachute_phase(end_altitude=self.second_event_altitude)
+        print("Reefed parachute phase completed. Current altitude:", self.altitude, "Current velocity:", self.velocity, "Time:", self.time)
 
         # Phase 2: Unreefed parachute descent until landing
         self.reefed = False
         self.simulate_parachute_phase()
+        print("Unreefed parachute phase completed. Current altitude:", self.altitude, "Current velocity:", self.velocity, "Time:", self.time)
         
         return {
             'time': self.times,
             'altitude': self.altitudes,
             'velocity': self.velocities,
+            'vvelocity': self.vvelocities,
+            'hvelocity': self.hvelocities,
             'acceleration': self.accelerations,
             'landing_velocity': self.velocity,
             'flight_time': self.time,
