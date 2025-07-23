@@ -170,7 +170,8 @@ class ParachuteSimulationGUI:
                     first_event_altitude=params['simulation']['first_altitude'],
                     second_event_altitude=params['simulation']['second_altitude'],
                     time_step=params['simulation']['time_step'],
-                    max_time=params['simulation']['max_time']
+                    max_time=params['simulation']['max_time'],
+                    launch_angle=params['simulation']['launch_angle']
                 )
             else:
                 simulation = SingleEventSimulation(
@@ -179,7 +180,8 @@ class ParachuteSimulationGUI:
                     reefed=params['simulation']['reefed'],
                     first_event_altitude=params['simulation']['first_altitude'],
                     time_step=params['simulation']['time_step'],
-                    max_time=params['simulation']['max_time']
+                    max_time=params['simulation']['max_time'],
+                    launch_angle=params['simulation']['launch_angle']
                 )
             
             # Run simulation
