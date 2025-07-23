@@ -317,6 +317,8 @@ class InputPanel(ttk.Frame):
             errors.append("Spill hole diameter must be non-negative")
         if self.spill_hole_diameter.get() >= self.parachute_diameter.get():
             errors.append("Spill hole diameter must be smaller than parachute diameter")
+        if self.reefing_ratio.get()* self.parachute_diameter.get() <= self.spill_hole_diameter.get():
+            errors.append("Reefed parachute diameter is smaller than spill hole diameter")
         
         # Validate simulation parameters
         if self.first_altitude.get() <= 0:

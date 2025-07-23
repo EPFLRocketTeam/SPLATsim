@@ -19,11 +19,12 @@ class SimulationEngine(ABC):
         self.altitude = None  # to be set in derived classes
         self.vvelocity = initial_velocity
         self.hvelocity = 0.0
-        self.vacceleration = self.GRAVITY  # assuming GRAVITY is defined in the class
-        self.hacceleration = 0.0
-        self.acceleration = -self.GRAVITY
+        # self.vacceleration = self.GRAVITY  # assuming GRAVITY is defined in the class
+        # self.hacceleration = 0.0
+        self.parachute_force = 0.0
+        # self.acceleration = -self.GRAVITY
 
-         # --- Time-series tracking ---
+        # --- Time-series tracking ---
         self.times = []
         self.altitudes = []
         self.vvelocities = []
@@ -52,6 +53,23 @@ class SimulationEngine(ABC):
         if self.hvelocity == 0:
             return - math.pi / 2
         return math.atan2(self.vvelocity, self.hvelocity)
+
+    @property
+    def acceleration(self):
+        """total acceleration magnitude"""
+        return math.sqrt(self.vacceleration**2 + self.hacceleration**2)  
+    
+    @property
+    def vacceleration(self):
+        """Vertical acceleration"""
+        return math.sin(abs(self.flight_angle)) * self.parachute_force + self.GRAVITY
+    
+    @property
+    def hacceleration(self):
+        """Horizontal acceleration"""
+        return round(math.cos(abs(self.flight_angle)) * self.parachute_force, 10)
+
+
     
     def get_initial_horizontal_velocity(self):
         """Set the horizontal velocity of the rocket at parachute opening. Neglecting friction and wind."""
@@ -101,14 +119,14 @@ class SimulationEngine(ABC):
 
     def simulate_freefall_phase(self):
         """Simulate free fall until parachute deployment"""
+        area = math.pi * (self.rocket.diameter / 2) ** 2
+        Cd = self.rocket.drag_coefficient
         while self.altitude > 0 and self.time < self.parachute.opening_time and self.time < self.max_time:
-            self.simulate_drift_step()
-            area = math.pi * (self.rocket.diameter / 2) ** 2
-            Cd = self.rocket.drag_coefficient
-            parachute_force = self.calculate_parachute_force(Cd, area) / self.rocket.mass
-            self.hacceleration = round(math.cos(abs(self.flight_angle)) * parachute_force, 10)
-            self.vacceleration = math.sin(abs(self.flight_angle)) * parachute_force + self.GRAVITY
-            self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
+            self.simulate_drift_step()  
+            self.parachute_force = self.calculate_parachute_force(Cd, area) / self.rocket.mass
+            # self.hacceleration = round(math.cos(abs(self.flight_angle)) * self.parachute_force, 10)
+            # self.vacceleration = math.sin(abs(self.flight_angle)) * parachute_force + self.GRAVITY
+            # self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
             self.store_state()
             self.update_state()
         
@@ -127,10 +145,10 @@ class SimulationEngine(ABC):
                 area = self.parachute.open_projected_area
                 Cd = self.parachute.open_Cd
 
-            parachute_force = self.calculate_parachute_force(Cd, area) / self.rocket.mass
-            self.hacceleration = round(math.cos(abs(self.flight_angle)) * parachute_force, 10)
-            self.vacceleration = math.sin(abs(self.flight_angle)) * parachute_force + self.GRAVITY
-            self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
+            self.parachute_force = self.calculate_parachute_force(Cd, area) / self.rocket.mass
+            # self.hacceleration = round(math.cos(abs(self.flight_angle)) * self.parachute_force, 10)
+            # self.vacceleration = math.sin(abs(self.flight_angle)) * self.parachute_force + self.GRAVITY
+            # self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
 
             self.store_state()           
             self.update_state()
