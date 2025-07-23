@@ -22,9 +22,8 @@ class SimulationEngine(ABC):
         self.vacceleration = self.GRAVITY  # assuming GRAVITY is defined in the class
         self.hacceleration = 0.0
         self.acceleration = -self.GRAVITY
-        # self.acceleration = math.sqrt(self.vacceleration**2 + self.hacceleration**2)  # total acceleration magnitude
-        # self.flight_angle = 0 # radians, angle of flight direction relative to horizontal axis -> at apogee it is assumed horizontal
-        # --- Time-series tracking ---
+
+         # --- Time-series tracking ---
         self.times = []
         self.altitudes = []
         self.vvelocities = []
@@ -53,15 +52,6 @@ class SimulationEngine(ABC):
         if self.hvelocity == 0:
             return - math.pi / 2
         return math.atan2(self.vvelocity, self.hvelocity)
-
-    # @property
-    # def vacceleration(self):
-    #     return math.sin(abs(self.flight_angle)) * self.acceleration  # vertical acceleration minus gravity component
-    
-    # @property
-    # def hacceleration(self):
-    #     return math.cos(abs(self.flight_angle)) * self.acceleration
-
     
     def get_initial_horizontal_velocity(self):
         """Set the horizontal velocity of the rocket at parachute opening. Neglecting friction and wind."""

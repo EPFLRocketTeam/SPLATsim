@@ -5,9 +5,5 @@ class RocketModel():
         self.parachute = parachute
         self.drag_coefficient = drag_coefficient
 
-
-
-
-
     
         
