@@ -147,6 +147,16 @@ class SimulationEngine(ABC):
         
         return self.altitude, self.velocity, self.time
     
+    def get_max_g_force(self, start, end = None):
+        try:
+            if end is None:
+                g_force = abs(max(self.accelerations[int(start/self.time_step):])/self.GRAVITY)
+            else:
+                g_force = abs(max(self.accelerations[int(start/self.time_step):int(end/self.time_step)])/self.GRAVITY)
+        except ValueError:
+            g_force = 999
+        return g_force
+
     @abstractmethod
     def simulate(self):
         None
@@ -166,6 +176,7 @@ class SingleEventSimulation(SimulationEngine):
         # Phase 2: Parachute descent until landing
         self.simulate_parachute_phase()
         return {
+            'Dual_Event': False,
             'time': self.times,
             'altitude': self.altitudes,
             'velocity': self.velocities,
@@ -175,6 +186,7 @@ class SingleEventSimulation(SimulationEngine):
             'landing_velocity': self.velocity,
             'flight_time': self.time,
             'reefed_Cd': self.parachute.reefed_Cd if self.reefed else None,
+            'unreefed_Cd': self.parachute.open_Cd,
             'drift': self.drift
         }
 
@@ -185,6 +197,9 @@ class DualEventSimulation(SimulationEngine):
         self.altitude = first_event_altitude
         self.second_event_altitude = second_event_altitude
         self.hvelocity = self.get_initial_horizontal_velocity()  # Set initial horizontal velocity
+        self.first_event_velocity = None
+        self.first_event_acceleration = None
+        self.second_event_acceleration = None
         print("Initial horizontal velocity:", self.velocity)
 
       
@@ -193,27 +208,39 @@ class DualEventSimulation(SimulationEngine):
         # Phase 1: Free fall until parachute deployment
         self.simulate_freefall_phase()
         print("Free fall phase completed. Current altitude:", self.altitude, "Current velocity:", self.velocity, "Time:", self.time)
-        
+
         # Phase 2: Reefed Parachute descent until landing
+        t_start_first_event = self.time
         self.reefed = True
         self.simulate_parachute_phase(end_altitude=self.second_event_altitude)
+        self.first_event_velocity = self.velocity
+        t_start_second_event = self.time
+        self.first_event_acceleration = self.get_max_g_force(t_start_first_event, t_start_second_event)
+
         print("Reefed parachute phase completed. Current altitude:", self.altitude, "Current velocity:", self.velocity, "Time:", self.time)
+
 
         # Phase 2: Unreefed parachute descent until landing
         self.reefed = False
         self.simulate_parachute_phase()
+        self.second_event_acceleration = self.get_max_g_force(t_start_second_event)
         print("Unreefed parachute phase completed. Current altitude:", self.altitude, "Current velocity:", self.velocity, "Time:", self.time)
         
         return {
+            'Dual_Event': True,
             'time': self.times,
             'altitude': self.altitudes,
             'velocity': self.velocities,
             'vvelocity': self.vvelocities,
             'hvelocity': self.hvelocities,
             'acceleration': self.accelerations,
+            'first_event_velocity': self.first_event_velocity,
+            'first_event_acceleration': self.first_event_acceleration,
+            'second_event_acceleration': self.second_event_acceleration,
             'landing_velocity': self.velocity,
             'flight_time': self.time,
             'reefed_Cd': self.parachute.reefed_Cd,
+            'unreefed_Cd': self.parachute.open_Cd,
             'drift': self.drift
         }
 

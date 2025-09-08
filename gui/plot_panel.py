@@ -35,7 +35,6 @@ class PlotPanel(ttk.Frame):
         # Results display
         self.setup_results_display()
         
-        # self.setup_plot_controls()
         # Plot area (initially empty)
         self.setup_plot_area()
     
@@ -138,13 +137,20 @@ class PlotPanel(ttk.Frame):
         
         # Display key metrics
         text_content = []
-        text_content.append(f"Landing Velocity: {results['landing_velocity']:.2f} m/s")
-        text_content.append(f"Flight Time: {results['flight_time']:.2f} seconds")
-        if results['reefed_Cd'] not in (None, float('inf')):
+        if results['Dual_Event'] == True:
+            text_content.append("--- FIRST EVENT ---")
+            text_content.append(f"Acceleration at First Event: {results['first_event_acceleration']:.2f} g")
+            text_content.append(f"Velocity at First Event: {results['first_event_velocity']:.2f} m/s")
             text_content.append(f"Estimated Reefed Cd: {results['reefed_Cd']:.2f}")
+            text_content.append("--- SECOND EVENT ---")
+            text_content.append(f"Acceleration at Second Event: {results['second_event_acceleration']:.2f} g")
 
-        
+        text_content.append(f"Landing Velocity: {results['landing_velocity']:.2f} m/s")
+        text_content.append(f"Flight Time: {results['flight_time']:.2f} seconds")            
+        text_content.append(f"Unreefed Cd: {results['unreefed_Cd']:.2f}")
+
         # Calculate additional metrics
+        text_content.append(f"--- ADDITIONAL METRICS ---")
         max_velocity = max(abs(v) for v in results['velocity'])
         max_acceleration = max(abs(a) for a in results['acceleration'])  
         text_content.append(f"Max Velocity: {max_velocity:.2f} m/s")

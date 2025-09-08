@@ -50,5 +50,5 @@ class HemisphericalParachute(ParachuteModel):
     @property
     def drag_area_ratio(self):
         if self.reefing_ratio is not None:
-            return 1.22*self.reefing_ratio + 0.0192 # found empirically 
+            return 1.43*self.reefing_ratio - 0.12 # found empirically 
         

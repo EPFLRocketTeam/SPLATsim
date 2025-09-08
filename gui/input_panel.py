@@ -18,16 +18,16 @@ class InputPanel(ttk.Frame):
     def setup_variables(self):
         """Initialize all tkinter variables"""
         # Rocket parameters
-        self.rocket_mass = tk.DoubleVar(value=20.0)
+        self.rocket_mass = tk.DoubleVar(value=83.0)
         self.rocket_diameter = tk.DoubleVar(value=1.0)
         self.rocket_drag_coeff = tk.DoubleVar(value=1.5)
         
         # Parachute parameters
         self.parachute_diameter = tk.DoubleVar(value=5.0)
-        self.opening_time = tk.DoubleVar(value=10.7)
-        self.reefing_ratio = tk.DoubleVar(value=0.5)
+        self.opening_time = tk.DoubleVar(value=7)
+        self.reefing_ratio = tk.DoubleVar(value=0.25)
         self.spill_hole_diameter = tk.DoubleVar(value=1.0)
-        self.open_cd = tk.DoubleVar(value=1.5)
+        self.open_cd = tk.DoubleVar(value=1.7)
         
         # Environment parameters
         self.air_density = tk.DoubleVar(value=1.124)
@@ -35,8 +35,8 @@ class InputPanel(ttk.Frame):
         
         # Flight Variables
         self.sim_type = tk.StringVar(value="Single Event")
-        self.first_altitude = tk.DoubleVar(value=550.0)
-        self.second_altitude = tk.DoubleVar(value=500.0)
+        self.first_altitude = tk.DoubleVar(value=3000.0)
+        self.second_altitude = tk.DoubleVar(value=400.0)
         self.reefed = tk.BooleanVar(value=True)
         self.launch_angle = tk.DoubleVar(value=90.0)
 
