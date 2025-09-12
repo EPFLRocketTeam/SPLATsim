@@ -146,10 +146,10 @@ class PlotPanel(ttk.Frame):
             text_content.append(f"Acceleration at Second Event: {results['second_event_acceleration']:.2f} g")
 
         text_content.append(f"Landing Velocity: {results['landing_velocity']:.2f} m/s")
-        text_content.append(f"Flight Time: {results['flight_time']:.2f} seconds")            
         text_content.append(f"Unreefed Cd: {results['unreefed_Cd']:.2f}")
 
         # Calculate additional metrics
+        text_content.append(f"Flight Time: {results['flight_time']:.2f} seconds")            
         text_content.append(f"--- ADDITIONAL METRICS ---")
         max_velocity = max(abs(v) for v in results['velocity'])
         max_acceleration = max(abs(a) for a in results['acceleration'])  
