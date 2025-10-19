@@ -87,6 +87,7 @@ splat/
 ## Version History
 
 - **v0.1.0** (June 2025) - Initial release
+- **v0.1.1** (October 2025) - Version used for EuRoC 2025
 ---
 
 <p align="center">
