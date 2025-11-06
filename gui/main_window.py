@@ -221,22 +221,22 @@ class ParachuteSimulationGUI:
     def reset_to_defaults(self):
         """Reset all parameters to default values"""
         # Reset input panel variables to defaults
-        self.input_panel.rocket_mass.set(20.0)
+        self.input_panel.rocket_mass.set(83)
         self.input_panel.rocket_diameter.set(1.0)
         self.input_panel.rocket_drag_coeff.set(1.5)
         
         self.input_panel.parachute_diameter.set(5.0)
-        self.input_panel.opening_time.set(10.7)
-        self.input_panel.reefing_ratio.set(0.5)
+        self.input_panel.opening_time.set(7)
+        self.input_panel.reefing_ratio.set(0.25)
         self.input_panel.spill_hole_diameter.set(1.0)
-        self.input_panel.open_cd.set(1.5)
+        self.input_panel.open_cd.set(1.7)
         
         self.input_panel.air_density.set(1.124)
         self.input_panel.gravity.set(9.81)
         
         self.input_panel.sim_type.set("Single Event")
-        self.input_panel.first_altitude.set(550.0)
-        self.input_panel.second_altitude.set(500.0)
+        self.input_panel.first_altitude.set(3000.0)
+        self.input_panel.second_altitude.set(400.0)
         self.input_panel.time_step.set(0.001)
         self.input_panel.max_time.set(300.0)
         self.input_panel.reefed.set(True)
